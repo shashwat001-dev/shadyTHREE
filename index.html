@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liquid Distort</title>
+    <style>
+       img {
+         opacity: 0;
+       } 
+
+       .app canvas {
+        position: fixed;
+        z-index: 0;
+        top: 0;
+        left: 0;
+       }
+
+    </style>
+</head>
+
+<body>
+    <!-- <div class="flex min-h-screen w-full items-center  justify-center bg-red-500 p-8">
+        <h1 class="rounded-lg bg-black px-8 py-6 text-6xl font-bold text-white">Tailwind is working</h1>
+    </div> -->
+    <div class="app flex h-screen w-full bg-zinc-900 text-gray-400">
+        <div class="canvas w-1/2 h-screen relative">
+            <a class='text-2xl opacity-60 font-base fixed top-10 right-10' href=""><i class="ri-close-large-fill"></i></a>
+            <div class="images w-[25vw] h-[32vw] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                <img class="absolute w-full h-full object-cover" src="/src/public/linked.png">
+                <img class="absolute w-full h-full object-cover" src="/src/public/jap.png">
+                <img class="absolute w-full h-full object-cover" src="/src/public/demon.png">
+                <img class="absolute w-full h-full object-cover" src="/src/public/com.png">
+            </div>
+        </div>
+        <div class="w-1/2 flex h-screen items-center justify-center">
+            <div class="links flex flex-col gap-[4.5rem]">
+                <a class="block text-6xl lowercase tracking-tighter opacity-100 transition-all hover:ml-5 hover:text-red-400 hover:opacity-80"
+                    href=""><small class="text-xl tracking-normal">01.</small>
+                    Bello
+                    spectacallo
+                </a>
+                <a class="block text-6xl lowercase tracking-tighter opacity-100 transition-all hover:ml-5 hover:text-red-400 hover:opacity-80"
+                    href=""><small class="text-xl tracking-normal">02.</small>
+                    Dolce far niente
+                </a>
+                <a class="block text-6xl lowercase tracking-tighter opacity-100 transition-all hover:ml-5 hover:text-red-400 hover:opacity-80"
+                    href=""><small class="text-xl tracking-normal">03.</small>
+                    sofisticado
+                </a>
+                <a class="block text-6xl lowercase tracking-tighter opacity-100 transition-all hover:ml-5 hover:text-red-400 hover:opacity-80"
+                    href=""><small class="text-xl tracking-normal">04.</small>
+                    Magnifico
+                </a>
+            </div>
+
+        </div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>
