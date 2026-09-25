@@ -73,15 +73,29 @@ class Site {
         const textureLoader = new THREE.TextureLoader()
         const textures = this.images.map((img) => textureLoader.load(img.src))
 
+        const video = document.createElement("video")
+
+        video.src = "/src/public/roly.mp4"
+        video.muted = true
+        video.loop = true
+        video.autoplay = true
+        video.playsInline = true
+
+        video.play()
+
+        const videoTexture = new THREE.VideoTexture(video)
+
         const uniforms = {
             uTime: { value: 0 },
             uTimeline: { value: 0.2 },
-            uStartIndex : { value: 0},
-            uEndIndex : { value: 1},
+            uStartIndex: { value: 0 },
+            uEndIndex: { value: 1 },
             uImage1: { value: textures[0] },
             uImage2: { value: textures[1] },
             uImage3: { value: textures[2] },
             uImage4: { value: textures[3] },
+
+            uVideo: { value: videoTexture },
         }
 
         this.material = new THREE.ShaderMaterial({
@@ -93,7 +107,19 @@ class Site {
 
         this.images.forEach(img => {
             const bounds = img.getBoundingClientRect();
-            const geometry = new THREE.PlaneGeometry(bounds.width, bounds.height);
+            // const geometry = new THREE.PlaneGeometry(bounds.width, bounds.height);
+            // const geometry = new THREE.PlaneGeometry(
+            //     bounds.width,
+            //     bounds.height,
+            //     50,
+            //     50
+            // );
+            const geometry = new THREE.PlaneGeometry(
+                640,
+                360,
+                50,
+                50
+            );
             const mesh = new THREE.Mesh(geometry, this.material);
 
             this.scene.add(mesh);
@@ -140,7 +166,7 @@ class Site {
         // this.cube.rotation.x += 0.01;
         // this.cube.rotation.y += 0.01;
         this.time += 0.25;
-        this.material.uniforms.uTime.value = this.time;        
+        this.material.uniforms.uTime.value = this.time;
         this.renderer.render(this.scene, this.camera);
         window.requestAnimationFrame(this.render.bind(this));
     }
