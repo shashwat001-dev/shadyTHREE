@@ -7,6 +7,8 @@ uniform sampler2D uImage1;
 uniform sampler2D uImage2;
 uniform sampler2D uImage3;
 uniform sampler2D uImage4;
+uniform float uNoiseStrength;
+uniform vec2 uMouse;
 
 #define NUM_OCTAVES 5
 
@@ -62,8 +64,11 @@ void main() {
     vec2 uv = vUv;
     uv -= 0.5;
 
-    float wave = fbm(3.5 * uv + uTime / 33.0);
-    float strength = smoothstep(.0, 1.0, uTimeline ) - smoothstep(2.0, 3.0, uTimeline);
+    vec2 direction = normalize(vec2(1.0, 1.0));
+  float wave = fbm(
+    3.5 * uv + direction * uTime / 13.0
+);
+    float strength = (smoothstep(.0, 1.0, uTimeline ) - smoothstep(2.0, 3.0, uTimeline)) * uNoiseStrength;
     float distort = mix(1.0, 1.2+strength, wave);
     uv *= distort;
     uv += .5;
@@ -76,7 +81,7 @@ void main() {
     vec4 endTexture = sampleColor(uEndIndex, uv);
 
     float changeTimeline = smoothstep(.5, 2.0, .9);
-    float mixer = 1.0 - step(changeTimeline, wave);
+    float mixer = (1.0 - step(changeTimeline, wave)) * uNoiseStrength;
 
     vec4 tex = mix(startTexture, endTexture, mixer);
 
