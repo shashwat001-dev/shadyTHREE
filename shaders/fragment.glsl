@@ -8,6 +8,7 @@ uniform sampler2D uImage2;
 uniform sampler2D uImage3;
 uniform sampler2D uImage4;
 uniform float uNoiseStrength;
+uniform float uImageTransition;
 uniform vec2 uMouse;
 
 #define NUM_OCTAVES 5
@@ -81,9 +82,14 @@ void main() {
     vec4 endTexture = sampleColor(uEndIndex, uv);
 
     float changeTimeline = smoothstep(.5, 2.0, .9);
-    float mixer = (1.0 - step(changeTimeline, wave)) * uNoiseStrength;
+    float mixer =
+        (1.0 - step(changeTimeline, wave)) *
+        uNoiseStrength *
+        smoothstep(0.0, 1.0, uImageTransition);
 
-    vec4 tex = mix(startTexture, endTexture, mixer);
+    vec4 tex = startTexture;
+    tex.rgb = mix(startTexture.rgb, endTexture.rgb, mixer * endTexture.a);
+    tex.a = max(startTexture.a, endTexture.a * mixer);
 
     gl_FragColor = tex;
 }

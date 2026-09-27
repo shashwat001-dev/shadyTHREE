@@ -32,11 +32,17 @@ class Site {
         this.maskSpeedMultiplier = 25
         this.cameraStartZ = 200
         this.cameraTravelDistance = 500
-        this.cameraSpeedEase = 0.008
+        this.cameraSpeedEase = 0.02
+        this.cameraTargetZ = this.cameraStartZ
+        this.cameraAtFarPoint = false
         this.lastScrollY = window.scrollY
         this.scrollVelocity = 0
+        this.currentImageIndex = 0
         this.uStartIndex = 0
         this.uEndIndex = 1
+        this.imageTransition = 1
+        this.targetImageTransition = 1
+        this.imageTransitionEase = 0.01
 
         this.scene = new THREE.Scene();
         this.camera = new THREE.PerspectiveCamera(
@@ -81,6 +87,7 @@ class Site {
                 this.scrollVelocity + Math.abs(event.deltaY) * 0.35,
                 this.maxScrollDelta
             )
+            this.cameraTargetZ = this.cameraStartZ + this.cameraTravelDistance
         }, { passive: true })
     }
 
@@ -94,6 +101,8 @@ class Site {
                 event.clientY / window.innerHeight
             );
 
+            const wasImageHovered = this.isImageHovered
+
             this.isImageHovered = this.images.some((image) => {
                 const bounds = image.getBoundingClientRect()
 
@@ -103,6 +112,13 @@ class Site {
                     event.clientY <= bounds.bottom
             })
 
+            if (this.isImageHovered && !wasImageHovered) {
+                this.material.uniforms.uStartIndex.value =
+                    this.currentImageIndex
+                this.material.uniforms.uEndIndex.value =
+                    (this.currentImageIndex + 1) % this.images.length
+            }
+
             this.targetParticleOpacity =
                 this.isImageHovered ? 1 : 0
 
@@ -110,15 +126,27 @@ class Site {
                 this.isImageHovered ? 1 : 0
 
             if (!this.isImageHovered) {
+                this.material.uniforms.uStartIndex.value =
+                    this.currentImageIndex
+                this.material.uniforms.uEndIndex.value =
+                    (this.currentImageIndex + 1) % this.images.length
                 this.scrollVelocity = 0
+                this.cameraTargetZ = this.cameraStartZ
+                this.cameraAtFarPoint = false
             }
         })
 
         window.addEventListener("pointerleave", () => {
             this.isImageHovered = false
+            this.material.uniforms.uStartIndex.value =
+                this.currentImageIndex
+            this.material.uniforms.uEndIndex.value =
+                (this.currentImageIndex + 1) % this.images.length
             this.targetParticleOpacity = 0
             this.targetNoiseStrength = 0
             this.scrollVelocity = 0
+            this.cameraTargetZ = this.cameraStartZ
+            this.cameraAtFarPoint = false
         })
     }
 
@@ -247,7 +275,6 @@ class Site {
     addImages() {
         const textureLoader = new THREE.TextureLoader()
         const textures = this.images.map((img) => textureLoader.load(img.src))
-
         const uniforms = {
             uTime: { value: 0 },
             uTimeline: { value: 0.2 },
@@ -258,6 +285,7 @@ class Site {
             uImage3: { value: textures[2] },
             uImage4: { value: textures[3] },
             uNoiseStrength: { value: 0 },
+            uImageTransition: { value: 1 },
             uMouse: { value: new THREE.Vector2(0.5, 0.5) },
         }
 
@@ -329,13 +357,36 @@ class Site {
             this.baseParticleSpeed +
             (scrollSpeed / this.maxScrollDelta) * this.scrollSpeedBoost;
 
-        const targetCameraZ =
-            this.cameraStartZ +
-            (scrollSpeed / this.maxScrollDelta) * this.cameraTravelDistance;
-
         this.camera.position.z +=
-            (targetCameraZ - this.camera.position.z) *
+            (this.cameraTargetZ - this.camera.position.z) *
             this.cameraSpeedEase;
+
+        const farCameraZ = this.cameraStartZ + this.cameraTravelDistance;
+
+        if (
+            this.isImageHovered &&
+            !this.cameraAtFarPoint &&
+            this.camera.position.z >= farCameraZ - 2
+        ) {
+            this.cameraAtFarPoint = true
+            this.currentImageIndex =
+                (this.currentImageIndex + 1) % this.images.length
+
+            this.material.uniforms.uStartIndex.value =
+                this.currentImageIndex
+            this.material.uniforms.uEndIndex.value =
+                (this.currentImageIndex + 1) % this.images.length
+            this.imageTransition = 0
+            this.targetImageTransition = 1
+            this.cameraTargetZ = this.cameraStartZ
+        }
+
+        if (
+            this.cameraAtFarPoint &&
+            this.camera.position.z <= this.cameraStartZ + 2
+        ) {
+            this.cameraAtFarPoint = false
+        }
 
         this.lastScrollY = window.scrollY;
 
@@ -354,6 +405,13 @@ class Site {
             this.noiseStrengthEase;
 
         this.material.uniforms.uNoiseStrength.value = this.noiseStrength;
+
+        this.imageTransition +=
+            (this.targetImageTransition - this.imageTransition) *
+            this.imageTransitionEase;
+
+        this.material.uniforms.uImageTransition.value =
+            this.imageTransition;
 
         this.time += this.particleSpeed * this.maskSpeedMultiplier;
         this.material.uniforms.uTime.value = this.time;
