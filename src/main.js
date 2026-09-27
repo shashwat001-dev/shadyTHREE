@@ -14,6 +14,7 @@ class Site {
         this.material
         this.imageStore = []
         this.particles
+        this.asteroidGroup
         this.particleGeometry
         this.particlePositions
         this.particleCount = 1100
@@ -22,10 +23,18 @@ class Site {
         this.particleOpacity = 0
         this.targetParticleOpacity = 0
         this.particleOpacityEase = 0.012
+        this.particleBounceTime = 0
+        this.imageTime = 0
+        this.asteroidOpacity = 0
+        this.targetAsteroidOpacity = 0
+        this.asteroidOpacityEase = 0.025
+        this.asteroidTime = 0
+        this.asteroidRotationSpeed = 0
+        this.asteroidRotationSpeedEase = 0.018
         this.noiseStrength = 0
         this.targetNoiseStrength = 0
         this.noiseStrengthEase = 0.018
-        this.baseParticleSpeed = 0.006;
+        this.baseParticleSpeed = 0;
         this.scrollSpeedBoost = 0.12;
         this.maxScrollDelta = 18
         this.scrollSpeedEase = 0.12
@@ -48,7 +57,7 @@ class Site {
         this.camera = new THREE.PerspectiveCamera(
             75,
             this.width / this.height,
-            100,
+            10,
             2000
         );
 
@@ -70,6 +79,7 @@ class Site {
         // this.addObjects()
         this.addImages()
         this.addParticles()
+        this.addAsteroids()
         this.resize()
         this.setUpResize()
         this.setUpScroll()
@@ -205,12 +215,14 @@ class Site {
         const particleMaterial = new THREE.ShaderMaterial({
             uniforms: {
                 uParticleTime: { value: 0 },
+                uParticleBounceTime: { value: 0 },
                 uOpacity: { value: 0 },
                 uMouse: { value: new THREE.Vector2(10, 10) }, // Default value to maintain effect
             },
             vertexShader: `
                 attribute float aOffset;
                 uniform float uParticleTime;
+                uniform float uParticleBounceTime;
                 uniform vec2 uMouse; // Keep uniform for shader
                 varying float vFade;
 
@@ -219,6 +231,7 @@ class Site {
                     float easedPhase = phase * phase * (3.0 - 2.0 * phase);
                     vec3 direction = normalize(position);
                     vec3 burstPosition = direction * mix(40.0, 800.0, easedPhase);
+                    burstPosition.y += sin(uParticleBounceTime * 1.2 + aOffset * 6.28318) * 3.0;
                     vec4 modelPosition = modelViewMatrix * vec4(burstPosition, 1.0);
                     vec4 projectedPosition = projectionMatrix * modelPosition;
                     vec2 screenPosition = projectedPosition.xy / projectedPosition.w;
@@ -237,7 +250,7 @@ class Site {
                 void main() {
                     float distanceFromCenter = distance(gl_PointCoord, vec2(0.5));
                     float softness = 1.0 - smoothstep(0.15, 0.5, distanceFromCenter);
-                    gl_FragColor = vec4(0.65, 0.9, 1.0, softness * vFade * uOpacity);
+                    gl_FragColor = vec4(0.6, 0.2, 1.0, softness * vFade * uOpacity);
                 }
             `,
             transparent: true,
@@ -254,6 +267,149 @@ class Site {
 
         this.scene.add(this.particles)
     }
+
+    addAsteroids() {
+        this.asteroidGroup = new THREE.Group();
+
+        const asteroidGeometry =
+            new THREE.DodecahedronGeometry(18, 0);
+
+        this.asteroidMaterial = new THREE.MeshStandardMaterial({
+            color: 0x8c7771,
+            roughness: 0.7,
+            metalness: 0.0,
+            emissive: 0x3d2520,
+            emissiveIntensity: 0.35,
+            transparent: true,
+            opacity: 0,
+            depthWrite: false
+        });
+
+        const imageWidth = this.imageStore[0]?.width ?? this.width * 0.5;
+        const imageHeight = this.imageStore[0]?.height ?? this.height * 0.32;
+        const asteroidOrbitX = imageWidth / 2 + 50;
+        const asteroidOrbitY = imageHeight / 2 + 30;
+
+        for (let index = 0; index < 64; index++) {
+
+            const asteroid = new THREE.Mesh(
+                asteroidGeometry,
+                this.asteroidMaterial
+            );
+
+            const angle =
+                Math.random() * Math.PI * 2;
+
+            asteroid.position.set(
+                Math.cos(angle) * asteroidOrbitX,
+                Math.sin(angle) * asteroidOrbitY,
+                20 + Math.random() * 30
+            );
+            asteroid.userData.baseY = asteroid.position.y;
+            asteroid.userData.bouncePhase = Math.random() * Math.PI * 2;
+
+            asteroid.scale.setScalar(
+                0.25 + Math.random() * 0.65
+            );
+
+            asteroid.rotation.set(
+                Math.random() * Math.PI,
+                Math.random() * Math.PI,
+                Math.random() * Math.PI
+            );
+
+            this.asteroidGroup.add(asteroid);
+        }
+
+        this.asteroidGroup.rotation.set(
+            THREE.MathUtils.degToRad(35),
+            0,
+            THREE.MathUtils.degToRad(45)
+        );
+        this.asteroidGroup.position.z = 10;
+        this.asteroidGroup.visible = true;
+
+        this.miniAsteroidGroup = new THREE.Group();
+        this.miniAsteroidMaterial = this.asteroidMaterial.clone();
+        this.miniAsteroidMaterial.color.set(0xc93636);
+        this.miniAsteroidMaterial.emissive.set(0x3a0808);
+
+        for (let index = 0; index < 72; index++) {
+            const miniAsteroid = new THREE.Mesh(
+                asteroidGeometry,
+                this.miniAsteroidMaterial
+            );
+            const radius = 150 + Math.random() * 180;
+            const azimuth = Math.random() * Math.PI * 2;
+            const elevation = Math.acos(2 * Math.random() - 1);
+
+            miniAsteroid.position.set(
+                Math.sin(elevation) * Math.cos(azimuth) * radius,
+                Math.cos(elevation) * radius,
+                Math.sin(elevation) * Math.sin(azimuth) * radius
+            );
+            miniAsteroid.scale.setScalar(0.08 + Math.random() * 0.16);
+            miniAsteroid.rotation.set(
+                Math.random() * Math.PI,
+                Math.random() * Math.PI,
+                Math.random() * Math.PI
+            );
+            this.miniAsteroidGroup.add(miniAsteroid);
+        }
+
+        this.diagonalAsteroidGroup = this.asteroidGroup.clone();
+        this.diagonalAsteroidGroup.rotation.set(
+            THREE.MathUtils.degToRad(35),
+            0,
+            THREE.MathUtils.degToRad(-45)
+        );
+        this.diagonalAsteroidGroup.position.z = 10;
+        this.diagonalAsteroidGroup.userData.rotationFactor = 0.63;
+        this.diagonalAsteroidMaterial = this.asteroidMaterial.clone();
+        this.diagonalAsteroidMaterial.color.set(0x4f86a8);
+        this.diagonalAsteroidGroup.children.forEach((asteroid) => {
+            asteroid.material = this.diagonalAsteroidMaterial;
+        });
+        this.diagonalAsteroidGroup.children.forEach((asteroid) => {
+            asteroid.userData.bouncePhase += Math.PI * 0.63;
+        });
+
+        this.asteroidGroups = [
+            this.asteroidGroup,
+            this.diagonalAsteroidGroup
+        ];
+
+        this.scene.add(this.asteroidGroup);
+        this.scene.add(this.diagonalAsteroidGroup);
+        this.scene.add(this.miniAsteroidGroup);
+
+        const fillLight = new THREE.HemisphereLight(
+            0xffffff,
+            0x17131a,
+            1.8
+        );
+
+        this.scene.add(fillLight);
+
+        const keyLight = new THREE.DirectionalLight(
+            0xffffff,
+            2.5
+        );
+
+        keyLight.position.set(-200, 250, 300);
+        this.scene.add(keyLight);
+
+        const light = new THREE.PointLight(
+            0xffffff,
+            85,
+            1000
+        );
+
+        light.position.set(100, 100, 300);
+
+        this.scene.add(light);
+    }
+
 
     setUpResize() {
         window.addEventListener("resize", this.resize.bind(this))
@@ -294,6 +450,7 @@ class Site {
             vertexShader: vertex,
             fragmentShader: fragment,
             transparent: true,
+            depthWrite: false,
         });
 
         this.images.forEach(img => {
@@ -413,16 +570,67 @@ class Site {
         this.material.uniforms.uImageTransition.value =
             this.imageTransition;
 
-        this.time += this.particleSpeed * this.maskSpeedMultiplier;
-        this.material.uniforms.uTime.value = this.time;
+        this.imageTime += 0.2 + scrollSpeed * 0.08;
+        this.material.uniforms.uTime.value = this.imageTime;
 
         this.particles.material.uniforms.uParticleTime.value +=
             this.particleSpeed;
+        this.particleBounceTime += 0.016;
+        this.particles.material.uniforms.uParticleBounceTime.value =
+            this.particleBounceTime;
 
         this.particles.rotateOnAxis(
             this.particleRotationAxis,
             this.particleSpeed * 0.25
         );
+
+        this.asteroidTime += 0.01;
+
+        this.asteroidGroups.forEach((group) => {
+            if (!group.userData.noBounce) {
+                group.children.forEach((asteroid) => {
+                    asteroid.position.y =
+                        asteroid.userData.baseY +
+                        Math.sin(this.asteroidTime * 0.8 + asteroid.userData.bouncePhase) * 7;
+                });
+            }
+        });
+
+        const cameraIsTraveling = this.cameraTargetZ > this.cameraStartZ;
+        const targetAsteroidRotationSpeed = cameraIsTraveling ? 1 : 0;
+        this.asteroidRotationSpeed +=
+            (targetAsteroidRotationSpeed - this.asteroidRotationSpeed) *
+            this.asteroidRotationSpeedEase;
+        this.targetAsteroidOpacity =
+            this.isImageHovered || cameraIsTraveling ? 1 : 0;
+        this.asteroidOpacity +=
+            (this.targetAsteroidOpacity - this.asteroidOpacity) *
+            this.asteroidOpacityEase;
+        this.asteroidMaterial.opacity = this.asteroidOpacity;
+        this.diagonalAsteroidMaterial.opacity = this.asteroidOpacity;
+        this.miniAsteroidMaterial.opacity = this.asteroidOpacity;
+
+        if (this.asteroidRotationSpeed > 0.0001) {
+            this.asteroidGroups.forEach((group) => {
+                const rotationFactor = group.userData.rotationFactor ?? 1;
+
+                if (group.userData.rotateAroundNormal) {
+                    group.rotateZ(0.004 * this.asteroidRotationSpeed * rotationFactor);
+                } else {
+                    group.rotation.x += 0.0018 * this.asteroidRotationSpeed * rotationFactor;
+                    group.rotation.y += 0.0027 * this.asteroidRotationSpeed * rotationFactor;
+                    group.rotation.z += 0.004 * this.asteroidRotationSpeed * rotationFactor;
+                }
+
+                if (!group.userData.rotateAroundNormal) {
+                    group.children.forEach((asteroid) => {
+                        asteroid.rotation.x += 0.0032 * this.asteroidRotationSpeed * rotationFactor;
+                        asteroid.rotation.y += 0.0024 * this.asteroidRotationSpeed * rotationFactor;
+                        asteroid.rotation.z += 0.0029 * this.asteroidRotationSpeed * rotationFactor;
+                    });
+                }
+            });
+        }
 
         this.renderer.render(this.scene, this.camera);
 
