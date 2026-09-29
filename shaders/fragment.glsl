@@ -7,6 +7,8 @@ uniform sampler2D uImage1;
 uniform sampler2D uImage2;
 uniform sampler2D uImage3;
 uniform sampler2D uImage4;
+uniform sampler2D uVideo;
+uniform float uMode;
 uniform float uNoiseStrength;
 uniform float uImageTransition;
 uniform vec2 uMouse;
@@ -91,5 +93,9 @@ void main() {
     tex.rgb = mix(startTexture.rgb, endTexture.rgb, mixer * endTexture.a);
     tex.a = max(startTexture.a, endTexture.a * mixer);
 
+    if (uMode == 1.0) {
+    gl_FragColor = texture2D(uVideo, vUv);
+    } else {
     gl_FragColor = tex;
-}
+    }
+    }

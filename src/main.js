@@ -8,9 +8,16 @@ class Site {
     constructor({ dom }) {
         this.time = 0
         this.container = dom
+        this.mode = "image"
         this.width = window.innerWidth
         this.height = window.innerHeight
         this.images = [...document.querySelectorAll(".images img")]
+        this.videos = [
+            "/src/public/roly.mp4",
+            "/src/public/mindGames.mp4",
+            "/src/public/sideDark.mp4",
+            "/src/public/sweetDreams.mp4",
+        ]
         this.material
         this.imageStore = []
         this.particles
@@ -52,6 +59,7 @@ class Site {
         this.imageTransition = 1
         this.targetImageTransition = 1
         this.imageTransitionEase = 0.01
+
 
         this.scene = new THREE.Scene();
         this.camera = new THREE.PerspectiveCamera(
@@ -113,7 +121,16 @@ class Site {
 
             const wasImageHovered = this.isImageHovered
 
-            this.isImageHovered = this.images.some((image) => {
+            // this.isImageHovered = this.images.some((image) => {
+            //     const bounds = image.getBoundingClientRect()
+
+            //     return event.clientX >= bounds.left &&
+            //         event.clientX <= bounds.right &&
+            //         event.clientY >= bounds.top &&
+            //         event.clientY <= bounds.bottom
+            // })
+
+            this.hoveredImageIndex = this.images.findIndex((image) => {
                 const bounds = image.getBoundingClientRect()
 
                 return event.clientX >= bounds.left &&
@@ -121,6 +138,8 @@ class Site {
                     event.clientY >= bounds.top &&
                     event.clientY <= bounds.bottom
             })
+
+            this.isImageHovered = this.hoveredImageIndex !== -1
 
             if (this.isImageHovered && !wasImageHovered) {
                 this.material.uniforms.uStartIndex.value =
@@ -158,6 +177,31 @@ class Site {
             this.cameraTargetZ = this.cameraStartZ
             this.cameraAtFarPoint = false
         })
+
+        window.addEventListener("click", () => {
+            if (!this.isImageHovered) return;
+
+            if (this.mode === "image") {
+
+                this.mode = "video";
+                this.material.uniforms.uMode.value = 1;
+
+                this.video.src = this.videos[this.currentImageIndex];
+
+                this.video.play();
+
+                console.log("VIDEO MODE");
+
+            } else {
+
+                this.mode = "image";
+                this.material.uniforms.uMode.value = 0;
+
+                this.video.pause();
+
+                console.log("IMAGE MODE");
+            }
+        });
     }
 
     resize() {
@@ -431,6 +475,18 @@ class Site {
     addImages() {
         const textureLoader = new THREE.TextureLoader()
         const textures = this.images.map((img) => textureLoader.load(img.src))
+
+        this.video = document.createElement("video");
+
+        this.video.src = this.videos[this.currentImageIndex];
+        this.video.muted = false;
+        this.video.autoplay = false;
+        this.video.loop = true;
+        this.video.playsInline = true;
+        this.video.preload = "auto";
+
+        this.videoTexture = new THREE.VideoTexture(this.video);
+
         const uniforms = {
             uTime: { value: 0 },
             uTimeline: { value: 0.2 },
@@ -440,6 +496,15 @@ class Site {
             uImage2: { value: textures[1] },
             uImage3: { value: textures[2] },
             uImage4: { value: textures[3] },
+
+            uVideo: {
+                value: this.videoTexture
+            },
+
+            uMode: {
+                value: 0
+            },
+
             uNoiseStrength: { value: 0 },
             uImageTransition: { value: 1 },
             uMouse: { value: new THREE.Vector2(0.5, 0.5) },
