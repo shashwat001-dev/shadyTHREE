@@ -69,7 +69,7 @@ void main() {
 
     vec2 direction = normalize(vec2(1.0, 1.0));
   float wave = fbm(
-    3.5 * uv + direction * uTime / 13.0
+    3.5 * uv + direction * uTime / 5.0
 );
     float strength = (smoothstep(.0, 1.0, uTimeline ) - smoothstep(2.0, 3.0, uTimeline)) * uNoiseStrength;
     float distort = mix(1.0, 1.2+strength, wave);
@@ -95,7 +95,7 @@ void main() {
 
     if (uMode == 1.0) {
 
-    gl_FragColor = texture2D(uVideo, vUv);
+    gl_FragColor = texture2D(uVideo, uv);
 
     } else {
 
