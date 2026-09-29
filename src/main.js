@@ -13,10 +13,23 @@ class Site {
         this.height = window.innerHeight
         this.images = [...document.querySelectorAll(".images img")]
         this.videos = [
-            "/src/public/roly.mp4",
-            "/src/public/mindGames.mp4",
-            "/src/public/sideDark.mp4",
-            "/src/public/sweetDreams.mp4",
+            {
+                src: "/src/public/roly.mp4",
+                aspect: "16:9"
+            },
+            {
+                src: "/src/public/sideDark.mp4",
+                aspect: "16:9"
+            },
+            {
+                src: "/src/public/knife.mp4",
+                aspect: "16:9"
+            },
+            {
+                src: "/src/public/that.mp4",
+                aspect: "9:16"
+            }
+
         ]
         this.material
         this.imageStore = []
@@ -121,15 +134,6 @@ class Site {
 
             const wasImageHovered = this.isImageHovered
 
-            // this.isImageHovered = this.images.some((image) => {
-            //     const bounds = image.getBoundingClientRect()
-
-            //     return event.clientX >= bounds.left &&
-            //         event.clientX <= bounds.right &&
-            //         event.clientY >= bounds.top &&
-            //         event.clientY <= bounds.bottom
-            // })
-
             this.hoveredImageIndex = this.images.findIndex((image) => {
                 const bounds = image.getBoundingClientRect()
 
@@ -186,9 +190,40 @@ class Site {
                 this.mode = "video";
                 this.material.uniforms.uMode.value = 1;
 
-                this.video.src = this.videos[this.currentImageIndex];
+                this.video.src = this.videos[this.currentImageIndex].src;
+                console.log(this.video.src);
 
                 this.video.play();
+
+                const image = this.imageStore[this.currentImageIndex];
+
+                this.imageStore.forEach((item, index) => {
+                    item.mesh.visible = index === this.currentImageIndex;
+                });
+
+                console.log(
+                    "VIDEO INDEX:",
+                    this.currentImageIndex,
+                    "ASPECT:",
+                    this.videos[this.currentImageIndex].aspect,
+                    "SCALE:",
+                    image.mesh.scale.x,
+                    image.mesh.scale.y
+                );
+
+                if (this.videos[this.currentImageIndex].aspect === "9:16") {
+                    image.mesh.scale.set(
+                        1,
+                        ((image.baseWidth * (16 / 9)) * 0.75) / image.baseHeight,
+                        1
+                    );
+                } else {
+                    image.mesh.scale.set(
+                        1.50,
+                        ((image.baseWidth * (9 / 16)) * 1.55) / image.baseHeight,
+                        1
+                    );
+                }
 
                 console.log("VIDEO MODE");
 
@@ -196,6 +231,12 @@ class Site {
 
                 this.mode = "image";
                 this.material.uniforms.uMode.value = 0;
+
+                this.imageStore.forEach((item) => {
+                    item.mesh.visible = true;
+                    item.mesh.scale.set(1, 1, 1);
+                });
+
 
                 this.video.pause();
 
@@ -326,7 +367,7 @@ class Site {
             emissiveIntensity: 0.35,
             transparent: true,
             opacity: 0,
-            depthWrite: false
+            depthWrite: false,
         });
 
         const imageWidth = this.imageStore[0]?.width ?? this.width * 0.5;
@@ -478,7 +519,7 @@ class Site {
 
         this.video = document.createElement("video");
 
-        this.video.src = this.videos[this.currentImageIndex];
+        this.video.src = this.videos[this.currentImageIndex].src;
         this.video.muted = false;
         this.video.autoplay = false;
         this.video.loop = true;
@@ -521,6 +562,7 @@ class Site {
         this.images.forEach(img => {
             const bounds = img.getBoundingClientRect();
             const geometry = new THREE.PlaneGeometry(bounds.width, bounds.height);
+            console.log(bounds.width, bounds.height)
             const mesh = new THREE.Mesh(geometry, this.material);
 
             this.scene.add(mesh);
@@ -532,6 +574,8 @@ class Site {
                 left: bounds.left,
                 width: bounds.width,
                 height: bounds.height,
+                baseWidth: bounds.width,
+                baseHeight: bounds.height,
             });
         })
     }

@@ -94,8 +94,12 @@ void main() {
     tex.a = max(startTexture.a, endTexture.a * mixer);
 
     if (uMode == 1.0) {
+
     gl_FragColor = texture2D(uVideo, vUv);
+
     } else {
+
     gl_FragColor = tex;
+    
     }
     }
